@@ -21,20 +21,20 @@ int main(int argc, char *argv[]) {
     *(currentChar - 1) = '\0';
 
     if (!findSpaceAndCheck(spacePointer, currentChar)) {
-        printf("Incorrect format: couldn't find space\n");
+        printf("error: couldn't find the space\n");
         exit(2);
     }
 
     // Check if there is at least one digit before and after the space
     if (spacePointer - inputBuffer < 2 || currentChar - spacePointer < 2) {
-        printf("Incorrect format: couldn't find one of the numbers\n");
+        printf("error: couldn't find the second number\n");
         exit(2);
     }
 
     // Check if both parts of the input are numeric
     for (char *tmp = inputBuffer; tmp < currentChar; ++tmp) {
         if (isNumericChar(*tmp)) {
-            printf("Incorrect format: couldn't parse two numbers\n");
+            printf("error: couldn't parse the numbers\n");
             exit(2);
         }
     }
