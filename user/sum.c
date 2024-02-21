@@ -2,67 +2,51 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-#define MAX_INPUT_SIZE 32
+#define BUF_SIZE 23
 
-void parseInput(char *input, int *firstNum, int *secondNum);
-int findSpaceAndCheck(char *start, char *end);
+int isWhitespace(char c) {
+    return c == ' ' || c == '\n' || c == '\0' || c == '\r';
+}
+
+int isDigit(char c) {
+    return '0' <= c && c <= '9';
+}
 
 int main(int argc, char *argv[]) {
-    
-    char inputBuffer[MAX_INPUT_SIZE];
-    char *currentChar = inputBuffer;
-    char *spacePointer = inputBuffer;
+    char newBuf[BUF_SIZE];
+    gets(newBuf, BUF_SIZE);
 
-    gets(inputBuffer, sizeof(inputBuffer) - 1);
+    char* end = newBuf + BUF_SIZE - 1; char* secPtr = newBuf;
 
-    // Find the newline character
-    for (; currentChar < inputBuffer + sizeof(inputBuffer) - 1 && *currentChar != '\n'; ++currentChar);
-    ++currentChar;
-    *(currentChar - 1) = '\0';
-
-    if (!findSpaceAndCheck(spacePointer, currentChar)) {
-        printf("Incorrect format: couldn't find space\n");
-        exit(2);
-    }
-
-    // Check if there is at least one digit before and after the space
-    if (spacePointer - inputBuffer < 2 || currentChar - spacePointer < 2) {
-        printf("Incorrect format: couldn't find one of the numbers\n");
-        exit(2);
-    }
-
-    // Check if both parts of the input are numeric
-    for (char *tmp = inputBuffer; tmp < currentChar; ++tmp) {
-        if (isNumericChar(*tmp)) {
-            printf("Incorrect format: couldn't parse two numbers\n");
-            exit(2);
+    while (secPtr != end) {
+        if (isWhitespace(*secPtr)) {
+            write(2, "error: there is only one number given, must be two\n", 22 + 7 + 9 + 12);
+            exit(1);
+        }
+        if (isDigit(*secPtr)) { secPtr++; } 
+        if (*secPtr == ' ') { break; }
+        else {
+            write(2, "error: invalid syntax\n", 14 + 7);
+            exit(3);
         }
     }
 
-    int firstNumber, secondNumber;
-    parseInput(inputBuffer, &firstNumber, &secondNumber);
+    char* check = secPtr++;
 
-    printf("%d\n", add(firstNumber, secondNumber));
+    while (check < end) {
+        if (isWhitespace(*check)) { break; }
+        if (isDigit(*check)) { check++; } 
+        else {
+            write(2, "error: invalid syntax\n", 14 + 8);
+            exit(3);
+        }
+    }
 
+    if (check >= end) {
+        write(2, "error: buffer overflow\n", 7 + 16);
+        exit(2);
+    }
+
+    printf("%d\n", add(atoi(newBuf), atoi(secPtr)));
     exit(0);
-}
-
-void parseInput(char *input, int *firstNum, int *secondNum) {
-    char *separator = input;
-    for (; *separator != '\0'; ++separator);
-
-    *separator = '\0';
-    ++separator;
-
-    *firstNum = atoi(input);
-    *secondNum = atoi(separator);
-}
-
-int isNumericChar(char c) {
-    return (c != '\0' && (c < '0' || c > '9'));
-}
-
-int findSpaceAndCheck(char *start, char *end) {
-    for (; *start != ' ' && start < end; ++start);
-    return (start != end);
 }
