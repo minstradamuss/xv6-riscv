@@ -2,64 +2,78 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 
-int isNumericChar(char c) {
-    return (c != '\0' && (c < '0' || c > '9'));
+const int BUFSIZE = 11;
+
+int isDigit(char ch) {
+    return ('0' <= ch && ch <= '9');
+}
+
+int isEndOfLine(char ch) {
+    return (ch == '\n' || ch == '\0' || ch == '\r');
+}
+
+int read_number(char* buf, int bufSize, int last) {
+    int i = 0;
+    while (i < bufSize) {
+        int readStr = read(0, buf + i, 1);
+        if (readStr == 0 || buf[i] == ' ') {
+            break;
+        }
+        if (isEndOfLine(buf[i])) {
+            if (last == 1) {
+                break;
+            }
+            if (i == 0) {
+                return -2; 
+            }
+            return -1; 
+        }
+        if (!isDigit(buf[i])) {
+            return -3; 
+        }
+        ++i;
+    }
+    if (i == 0) {
+        return last == 0 ? -2 : -1; 
+    }
+    if (bufSize == i) {
+        return -2;
+    }
+    buf[i] = '\0';
+    return 0;
+}
+
+void error(int error) {
+    if (error == -1) {
+        write(2, "error: reading error\n", 7 + 14);
+    }
+    else if (error == -2) {
+        write(2, "error: input is empty\n", 7 + 14);
+    }
+    else if (error == -3) {
+        write(2, "error: invalid syntax\n", 7 + 14);
+    }
 }
 
 int main(int argc, char *argv[]) {
-    char inputBuffer[32];
-    char *currentChar = inputBuffer;
-    char *separator = inputBuffer;
-    int bytesRead;
+    char firstNum[BUFSIZE];
+    char secondNum[BUFSIZE];
 
-    while (1) {
-        bytesRead = read(0, currentChar++, 1);
-
-        switch (bytesRead) {
-            case 0:
-                printf("error: reached the end of the current file\n");
-                exit(1);
-            case -1:
-                printf("error: couldn't read\n");
-                exit(1);
-        }
-
-        if (currentChar - inputBuffer == sizeof inputBuffer) {
-            printf("Buffer overflow\n");
-            exit(1);
-        }
-
-        if (*(currentChar - 1) == '\n') {
-            *(currentChar - 1) = '\0';
-            break;
-        }
+    int readStr = read_number(firstNum, BUFSIZE, 0);
+    if (readStr < 0) {
+        error(readStr);
+        exit(-readStr);
     }
 
-    while (*separator != ' ' && separator - inputBuffer < sizeof inputBuffer) {
-        ++separator;
+    readStr = read_number(secondNum, BUFSIZE, 1);
+    if (readStr < 0) {
+        error(readStr);
+        exit(-readStr);
     }
 
-    if (separator - inputBuffer == sizeof inputBuffer) {
-        printf("error: couldn't find the space\n");
-        exit(2);
-    }
-    *separator = '\0';
-    ++separator;
+    //printf("|%s %s|\n", firstNum, secondNum);
 
-    if (separator - inputBuffer < 2 || currentChar - separator < 2) {
-        printf("error: couldn't find the second number\n");
-        exit(2);
-    }
+    printf("%d\n", atoi(firstNum) + atoi(secondNum));
 
-    for (char *tmp = inputBuffer; tmp < currentChar; ++tmp) {
-        if (isNumericChar(*tmp)) {
-            printf("error: couldn't parse the numbers\n");
-            exit(2);
-        }
-    }
-
-    int firstNumber = atoi(inputBuffer); int secondNumber = atoi(separator);
-
-    printf("%d\n", firstNumber + secondNumber);
     exit(0);
 }
