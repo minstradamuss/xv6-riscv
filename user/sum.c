@@ -16,6 +16,9 @@ int read_number(char* buf, int bufSize, int last) {
     int i = 0;
     while (i < bufSize) {
         int readStr = read(0, buf + i, 1);
+        if (readStr < 0) {
+            return -1; // Error during read
+        }
         if (readStr == 0 || buf[i] == ' ') {
             break;
         }
@@ -37,10 +40,10 @@ int read_number(char* buf, int bufSize, int last) {
         return last == 0 ? -2 : -1; 
     }
     if (bufSize == i) {
-        return -2;
+        return -2; 
     }
     buf[i] = '\0';
-    return 0;
+    return 0; 
 }
 
 void error(int error) {
@@ -52,6 +55,9 @@ void error(int error) {
     }
     else if (error == -3) {
         write(2, "error: invalid syntax\n", 7 + 14);
+    }
+    else if (error == -4) {
+        write(2, "error: read system call error\n", 7 + 14 + 5);
     }
 }
 
