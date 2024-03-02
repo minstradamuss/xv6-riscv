@@ -56,9 +56,6 @@ void error(int error) {
     else if (error == -3) {
         write(2, "error: invalid syntax\n", 7 + 14);
     }
-    else if (error == -4) {
-        write(2, "error: read system call error\n", 7 + 14 + 5);
-    }
 }
 
 int main(int argc, char *argv[]) {
