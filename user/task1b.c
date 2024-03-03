@@ -22,7 +22,7 @@ int main(int argc, char **argv) {
         exit(0);
     }
     else {
-        fprintf(2, "Error: something went wrong when creating a child process\n");
+        fprintf(2, "Error: can't start new process\n");
         exit(1);
     }
 }
