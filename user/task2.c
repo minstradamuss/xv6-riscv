@@ -5,28 +5,20 @@
 
 #define BUFSIZE 20
 #define MSG_START_PROCESS "Error: can't start new process\n"
-#define MSG_READING_ERROR "Error: reading error\n"
-#define MSG_BUFFER_OVERFLOW "Error: buffer overflow\n"
-
+#define MSG_WRITE_PIPE_ERROR "Error: could not write to pipe\n"
 
 int main(int argc, char** argv) {
     int status;
     int pr[2];
     pipe(pr); 
-    const int sizeOfBuffer = BUFSIZE + 1; //including space for '\0'
     int pid = fork();
     if (pid == 0) {
         close(pr[1]);
-        char buf[sizeOfBuffer];
-        int n;
-        while ((n = read(pr[0], buf, sizeOfBuffer)) > 0) {
-            printf("%s", buf);
+        char s;
+        while ((read(pr[0], &s, 1) > 0)) {
+            printf("%c", s);
         }
         close(pr[0]);
-        if (n < 0) {
-            write(2, MSG_READING_ERROR, sizeof(MSG_READING_ERROR) - 1);
-            exit(4);
-        }
         exit(0);
     }
     else if (pid < 0) {
@@ -35,17 +27,12 @@ int main(int argc, char** argv) {
     }
     else {
         close(pr[0]);
-        char buf[sizeOfBuffer];
         for (int i = 1; i < argc; ++i) {
-            if (strlen(argv[i]) >= sizeOfBuffer) {
-                close(pr[1]);
-                wait(&status);
-                write(2, MSG_BUFFER_OVERFLOW, sizeof(MSG_BUFFER_OVERFLOW) - 1);
-                exit(2);
+            int arg_size = strlen(argv[i]);
+            if (write(pr[1], argv[i], arg_size) == -1 || write(pr[1], "\n", 1) == -1) {
+                write(2, MSG_WRITE_PIPE_ERROR, sizeof(MSG_WRITE_PIPE_ERROR) - 1);
+                exit(-1);
             }
-            strcpy(buf, argv[i]);
-            buf[strlen(argv[i])] = '\n';
-            write(pr[1], buf, strlen(argv[i]) + 1);
         }
         close(pr[1]);
         wait(&status);

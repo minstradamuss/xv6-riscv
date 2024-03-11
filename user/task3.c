@@ -5,15 +5,15 @@
 #define BUFSIZE 20
 #define MSG_START_PROCESS "Error: can't start new process\n"
 #define MSG_READING_ERROR "Error: reading error\n"
-#define MSG_BUFFER_OVERFLOW "Error: buffer overflow\n"
 #define MSG_CANT_EXEC_WC "Error: can't execute wc program\n"
+#define MSG_WRITE_PIPE_ERROR "Error: could not write to pipe\n"
 
 
 int main(int argc, char** argv) {
     int status;
     int pr[2];
     pipe(pr);
-    const int sizeOfBuffer = BUFSIZE + 1; //including space for '\0'
+    const int sizeOfBuffer = BUFSIZE;
     int pid = fork();
     if (pid == 0) {
         close(pr[1]);
@@ -31,19 +31,13 @@ int main(int argc, char** argv) {
     }
     else {
         close(pr[0]);
-        char buf[sizeOfBuffer];
-        for (int i = 1; i < argc; ++i) {
-            int len = strlen(argv[i]);
-            if (len >= sizeOfBuffer) {
-                close(pr[1]);
-                wait(&status);
-                const int msg_len = 16;
-                write(2, MSG_BUFFER_OVERFLOW, sizeof(MSG_BUFFER_OVERFLOW) - 1);
-                exit(2);
+        int size;
+        for (int i = 1; i < argc; ++i){
+            size = strlen(argv[i]);
+            if (write(pr[1], argv[i], size) == -1 || write(pr[1], "\n", 1) == -1) {
+                write(2, MSG_WRITE_PIPE_ERROR, sizeof(MSG_WRITE_PIPE_ERROR) - 1);
+                exit(-1);
             }
-            strcpy(buf, argv[i]);
-            buf[len] = '\n';
-            write(pr[1], buf, len + 1);
         }
         close(pr[1]);
         wait(&status);
