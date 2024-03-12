@@ -684,13 +684,10 @@ procdump(void)
 }
 
 
-
-// Helper function to copy data to user space
 static int copy_to_user(uint64 addr, void *src, uint64 size) {
     return copyout(myproc()->pagetable, addr, src, size);
 }
 
-// Helper function to acquire the wait_lock and get the parent PID
 static int get_parent_pid(struct proc *p) {
     int parent_pid = -1;
     acquire(&wait_lock);
