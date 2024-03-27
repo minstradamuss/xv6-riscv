@@ -310,6 +310,10 @@ fork(void)
 
   safestrcpy(np->name, p->name, sizeof(p->name));
 
+  for (i = 0; i < NOMUTEX; i++)
+      if (p->omutex[i])
+        np->omutex[i] = mutexdup(p->omutex[i]);
+
   pid = np->pid;
 
   release(&np->lock);
@@ -357,6 +361,14 @@ exit(int status)
       struct file *f = p->ofile[fd];
       fileclose(f);
       p->ofile[fd] = 0;
+    }
+  }
+
+  for (int md = 0; md < NOMUTEX; md++) {
+    if (p->omutex[md]) {
+      struct mutex *m = p->omutex[md];
+      mutexclose(m);
+      p->omutex[md] = 0;
     }
   }
 

@@ -8,6 +8,7 @@ struct spinlock;
 struct sleeplock;
 struct stat;
 struct superblock;
+struct mutex;
 
 // bio.c
 void            binit(void);
@@ -184,6 +185,20 @@ void            plic_complete(int);
 void            virtio_disk_init(void);
 void            virtio_disk_rw(struct buf *, int);
 void            virtio_disk_intr(void);
+
+
+
+
+
+
+void            mutexinit(void);
+struct mutex*   mutexalloc(void);
+int             mutexlock(struct mutex *m);
+struct mutex*   mutexdup(struct mutex *m);
+int             mutexunlock(struct mutex *m);
+int             mutexclose(struct mutex *m);
+
+
 
 // number of elements in fixed-size array
 #define NELEM(x) (sizeof(x)/sizeof((x)[0]))

@@ -36,3 +36,8 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
+
+entry("mopen");
+entry("lock");
+entry("unlock");
+entry("mclose");
