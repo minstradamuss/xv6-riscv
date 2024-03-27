@@ -5,27 +5,38 @@
 
 #define ERROR_PS_LISTINFO "Error: ps_listinfo failed %d\n"
 
-char *states[] = {
-    [STATE_UNUSED]    "UNUSED  ",
-    [STATE_USED]      "USED    ",
-    [STATE_SLEEPING]  "SLEEPING",
-    [STATE_RUNNABLE]  "RUNNABLE",
-    [STATE_RUNNING]   "RUNNING ",
-    [STATE_ZOMBIE]    "ZOMBIE  "
-};
 
 int main(void) {
-    procinfo_t buf[NPROC];
+    int size = 1;
+    int cnt_proc;
 
-    int cnt_proc = ps_listinfo(buf, NPROC);
-    if (cnt_proc < 0 || cnt_proc > NPROC) {
-        fprintf(2, ERROR_PS_LISTINFO, cnt_proc);
-        exit(1);
+    char *states[] = {
+        [STATE_UNUSED]    "UNUSED  ",
+        [STATE_USED]      "USED    ",
+        [STATE_SLEEPING]  "SLEEPING",
+        [STATE_RUNNABLE]  "RUNNABLE",
+        [STATE_RUNNING]   "RUNNING ",
+        [STATE_ZOMBIE]    "ZOMBIE  "
+    };
+
+    while (1) {
+        procinfo_t buf[size];
+        cnt_proc = procinfo((uint64)buf, size);
+
+        if (cnt_proc < 0) {
+            fprintf(2, ERROR_PS_LISTINFO, cnt_proc);
+            exit(1);
+        }
+
+        if (size < cnt_proc) {
+            size *= 2;
+        }
+        else {
+            for (int i = 0; i < cnt_proc; ++i) {
+                printf("%s %d %s\n", states[buf[i].state], buf[i].parent_pid, buf[i].name);
+            }
+            exit(0);
+        }
     }
-
-    for (int i = 0; i < cnt_proc; ++i) {
-        printf("%s %d %s\n", states[buf[i].state], buf[i].parent_pid, buf[i].name);
-    }
-
-    exit(0);
+    exit(1);
 }
