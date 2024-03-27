@@ -3,48 +3,63 @@
 #include "kernel/param.h"
 #include "user/user.h"
 
-#define ERROR_NON_POSITIVE "Error: ps_listinfo returned non-positive value\n"
+#define INVALID_BUFFER_ADDRESS_ERROR "Error: invalid buffer address failed\n"
+#define INSUFFICIENT_BUFFER_SIZE_ERROR "Error: insufficient buffer size failed\n"
+#define VALID_BUFFER_ERROR "Error: valid buffer failed\n"
 
-int writeWork() {
-    struct procinfo pinfo[NPROC];
-    int cnt_proc = ps_listinfo(pinfo, NPROC);
-    //printf("Number of processes: %d\n", cnt_proc);
-    if (cnt_proc <= 0) {
-        printf(ERROR_NON_POSITIVE);
-        return 0;
+#define PS_LISTINFO_RETURNED_MSG "ps_listinfo returned: %d\n\n"
+
+void test_invalid_buffer_address() {
+    int ret = procinfo((uint64)0xFFFFFFFFFFFFF000, 10);
+    
+    fprintf(1, PS_LISTINFO_RETURNED_MSG, ret);
+    
+    if (ret > 0) {
+        fprintf(2, INVALID_BUFFER_ADDRESS_ERROR);
+        exit(1);
     }
-    return 1;
 }
 
-int badAddress() {
-    int cnt_proc = ps_listinfo(0, NPROC);
-    //printf("Number of processes: %d\n", cnt_proc);
-    return cnt_proc > 0;
+void test_insufficient_buffer_size() {
+    procinfo_t plist[1];
+    int ret = procinfo((uint64)plist, 1);
+    
+    fprintf(1, PS_LISTINFO_RETURNED_MSG, ret);
+    
+    if (ret <= 1) {
+        fprintf(2, INSUFFICIENT_BUFFER_SIZE_ERROR);
+        exit(1);
+    }
 }
 
-int smallSpace() {
-    struct procinfo pinfo[1];
-    int cnt_proc = ps_listinfo(pinfo, 1);
-    //printf("Number of processes: %d\n", cnt_proc);
-    return (cnt_proc != -1);
+void test_empty_buffer() {
+    int ret = procinfo(0, 10);
+    
+    fprintf(1, PS_LISTINFO_RETURNED_MSG, ret);
+    
+    if (ret < 0) {
+        fprintf(2, VALID_BUFFER_ERROR);
+        exit(1);
+    }
 }
 
-int main(void) {
-    int failed = 0;
-    if (!writeWork()) {
-        failed++;
-        printf("writeWork test is failed\n");
+void test_valid_buffer() {
+    procinfo_t plist[10];
+    int ret = procinfo((uint64)plist, 10);
+    
+    fprintf(1, PS_LISTINFO_RETURNED_MSG, ret);
+    
+    if (ret < 0) {
+        fprintf(2, VALID_BUFFER_ERROR);
+        exit(1);
     }
-    if (!badAddress()) {
-        failed++;
-        printf("badAddress test is failed\n");
-    }
-    if (!smallSpace()) {
-        failed++;
-        printf("smallSpace test is failed\n");
-    }
-    if (!failed) {
-        printf("ALL TESTS PASSED\n");
-    }
+}
+
+
+int main(int argc, char *argv[]) {
+    test_invalid_buffer_address();
+    test_insufficient_buffer_size();
+    test_empty_buffer();
+    test_valid_buffer();
     exit(0);
 }
