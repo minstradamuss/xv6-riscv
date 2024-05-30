@@ -2,9 +2,11 @@
 #include "kernel/stat.h"
 #include "user/user.h"
 #include "kernel/fs.h"
+#include "kernel/fcntl.h"
+#include "kernel/param.h"
 
 char*
-fmtname(char *path)
+fmtname(char *path, int with_dir)
 {
   static char buf[DIRSIZ+1];
   char *p;
@@ -17,8 +19,16 @@ fmtname(char *path)
   // Return blank-padded name.
   if(strlen(p) >= DIRSIZ)
     return p;
-  memmove(buf, p, strlen(p));
-  memset(buf+strlen(p), ' ', DIRSIZ-strlen(p));
+  int add = 0;
+  if (with_dir) {
+    memmove(buf, "./", 2);
+    add = 2;
+  }
+  memmove(buf + add, p, strlen(p));
+  memset(buf+strlen(p) + add, ' ', DIRSIZ-strlen(p) - add);
+  if (add != 0) {
+    buf[add + strlen(p)] = 0;
+  }
   return buf;
 }
 
@@ -30,7 +40,7 @@ ls(char *path)
   struct dirent de;
   struct stat st;
 
-  if((fd = open(path, 0)) < 0){
+  if((fd = open(path, O_NOFOLLOW)) < 0){
     fprintf(2, "ls: cannot open %s\n", path);
     return;
   }
@@ -44,9 +54,13 @@ ls(char *path)
   switch(st.type){
   case T_DEVICE:
   case T_FILE:
-    printf("%s %d %d %l\n", fmtname(path), st.type, st.ino, st.size);
+    printf("%s %d %d %l\n", fmtname(path, 0), st.type, st.ino, st.size);
     break;
-
+  case T_SYMLINK:
+    char target[MAXPATH];
+    readlink(path, target);
+    printf("%s %s %d %d %l\n", fmtname(path, 0), target, st.type, st.ino, st.size);
+    break;
   case T_DIR:
     if(strlen(path) + 1 + DIRSIZ + 1 > sizeof buf){
       printf("ls: path too long\n");
@@ -60,11 +74,18 @@ ls(char *path)
         continue;
       memmove(p, de.name, DIRSIZ);
       p[DIRSIZ] = 0;
-      if(stat(buf, &st) < 0){
+      if(lstat(buf, &st) < 0){
         printf("ls: cannot stat %s\n", buf);
         continue;
       }
-      printf("%s %d %d %d\n", fmtname(buf), st.type, st.ino, st.size);
+      if (st.type != T_SYMLINK) 
+        printf("%s %d %d %d\n", fmtname(buf, 0), st.type, st.ino, st.size);
+      else {
+        char target[MAXPATH];
+        readlink(fmtname(buf, 1), target);
+        target[st.size] = 0;
+        printf("%s %s %d %d %l\n", fmtname(buf, 0), target, st.type, st.ino, st.size);
+      }
     }
     break;
   }
