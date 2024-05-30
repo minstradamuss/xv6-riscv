@@ -681,3 +681,56 @@ procdump(void)
     printf("\n");
   }
 }
+
+
+uint64 sys_proctable() {
+  struct proc *p = myproc();
+  vmprint(p->pagetable);
+  return 0;
+}
+
+
+uint64 count_accessed_pages(pagetable_t pagetable, uint64 start_va, int sz) {
+    uint64 accessed_pages = 0;
+    pte_t *pte;
+
+    for (int i = 0; i < sz; i += PGSIZE) {
+        pte = walk(pagetable, start_va + i, 0);
+        if (pte != 0 && ((*pte) & PTE_A)) {
+            ++accessed_pages;
+            *pte ^= PTE_A;
+        }
+    }
+
+    return accessed_pages;
+}
+
+uint64 clear_accessed_bit(pagetable_t pagetable, uint64 va) {
+    pte_t *pte = walk(pagetable, va, 0);
+    if (pte != 0 && ((*pte) & PTE_A)) {
+        *pte ^= PTE_A;
+        return 1;
+    }
+    return 0;
+}
+
+uint64 sys_wasaccess() {
+    uint64 va;
+    int sz;
+    uint64 res = 0;
+
+    argaddr(0, &va);
+    argint(1, &sz);
+
+    if (sz <= 0)
+        return -1;
+
+    pagetable_t pagetable = myproc()->pagetable;
+
+    res += count_accessed_pages(pagetable, va, sz);
+
+    uint64 last_page_va = va + sz - 1;
+    res += clear_accessed_bit(pagetable, last_page_va);
+
+    return res;
+}

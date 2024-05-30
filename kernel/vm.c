@@ -437,3 +437,45 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+void print_flags(uint64 pte) {
+    int A = ((pte & PTE_A) != 0);
+    int D = ((pte & PTE_D) != 0);
+    int R = ((pte & PTE_R) != 0);
+    int W = ((pte & PTE_W) != 0);
+    int X = ((pte & PTE_X) != 0);
+
+    printf("flags: A = %d, D = %d, R = %d, W = %d, X = %d\n", A, D, R, W, X);
+}
+
+void print_indent(int depth) {
+    for (int j = 0; j < depth + 1; j++)
+        printf(" ..");
+}
+
+void pgprint_recursive(pagetable_t pagetable, int depth) {
+    for (int i = 0; i < 512; i++) {
+        pte_t pte = pagetable[i];
+        if (pte & PTE_V) {
+            uint64 child = PTE2PA(pte);
+
+            print_indent(depth);
+            printf("%d pte %p; ", i, (void *)child);
+            print_flags(pte);
+
+            if (depth < 2)
+                pgprint_recursive((pagetable_t)child, depth + 1);
+        }
+    }
+}
+
+void pgprint(pagetable_t pagetable, int depth) {
+    pgprint_recursive(pagetable, depth);
+}
+
+
+
+void vmprint(pagetable_t pagetable) {
+  printf("PT %p\n", pagetable);
+  pgprint(pagetable, 0);
+}
