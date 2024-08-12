@@ -1,7 +1,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
-#include "riscv.h"
+#include "msg_buf.h"
 #include "defs.h"
 
 volatile static int started = 0;
@@ -39,6 +39,7 @@ main()
     kvminithart();    // turn on paging
     trapinithart();   // install kernel trap vector
     plicinithart();   // ask PLIC for device interrupts
+    init_msg_buf();
   }
 
   scheduler();        
