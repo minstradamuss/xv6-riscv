@@ -1,8 +1,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
-#include "riscv.h"
-#include "spinlock.h"
+#include "msg_buf.h"
 #include "proc.h"
 #include "defs.h"
 #include "elf.h"
@@ -30,6 +29,10 @@ exec(char *path, char **argv)
   struct proghdr ph;
   pagetable_t pagetable = 0, oldpagetable;
   struct proc *p = myproc();
+
+  acquire(&p->lock);
+  pr_msg(EXEC, "Exec name = %s in id = %d", path, p->pid);
+  release(&p->lock);
 
   begin_op();
 
