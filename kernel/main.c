@@ -1,7 +1,7 @@
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
-#include "riscv.h"
+#include "msg_buf.h"
 #include "defs.h"
 
 volatile static int started = 0;
@@ -31,6 +31,8 @@ main()
     userinit();      // first user process
     __sync_synchronize();
     started = 1;
+    init_msg_buf();   // init message buffer
+    init_mode_table(); // init modes table
   } else {
     while(started == 0)
       ;

@@ -2,11 +2,10 @@
 // low-level driver routines for 16550a UART.
 //
 
+#include "msg_buf.h"
 #include "types.h"
 #include "param.h"
 #include "memlayout.h"
-#include "riscv.h"
-#include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
 
@@ -175,6 +174,7 @@ uartgetc(void)
 void
 uartintr(void)
 {
+  pr_msg(TRAP, "UART interrupt num = %d", UART0_IRQ);
   // read and process incoming characters.
   while(1){
     int c = uartgetc();
