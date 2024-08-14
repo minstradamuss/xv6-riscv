@@ -301,18 +301,12 @@ create(char *path, short type, short major, short minor)
   return 0;
 }
 
-uint64
-sys_open(void)
-{
-  char path[MAXPATH];
-  int fd, omode;
+int
+open(char* path, int omode) {
+  int fd;
   struct file *f;
   struct inode *ip;
-  int n;
-
-  argint(1, &omode);
-  if((n = argstr(0, path, MAXPATH)) < 0)
-    return -1;
+  static int counter = 0;
 
   begin_op();
 
@@ -328,7 +322,50 @@ sys_open(void)
       return -1;
     }
     ilock(ip);
-    if(ip->type == T_DIR && omode != O_RDONLY){
+    if (ip->type == T_SYMLINK && !(omode & O_NOFOLLOW)) {
+      int len;
+      char buf[MAXPATH+1];
+      if (counter < MAXDEPTH) {
+        counter++;
+        len = readi(ip, 0, (uint64)buf, 0, MAXPATH);
+        buf[len] = 0;
+        char buf2[MAXPATH * 2 + 1];
+        int i = 0;
+        if (buf[0] == '.') {
+          for (int j = 0; j < strlen(path) + 1; j++) {
+            if (!path[j])
+              break;
+            if (path[j] == '/')
+              i = j;
+          }
+
+          for (int j = 0; j < i; j++)
+            buf2[j] = path[j];
+
+          buf2[i++] = '/';
+        }
+
+        for (int j = 0; j < len + 1; j++) {
+          buf2[j + i] = buf[j];
+        }
+        iunlockput(ip);
+        end_op();
+        if ((fd = open(buf2, omode)) < 0) {
+          counter = 0;
+          return -1;
+        }
+      } else {
+        counter = 0;
+        iunlockput(ip);
+        end_op();
+        return -1;
+      }
+
+      counter = 0;
+
+      return fd;
+    }
+    if(ip->type == T_DIR && omode != O_RDONLY && omode != O_NOFOLLOW){
       iunlockput(ip);
       end_op();
       return -1;
@@ -368,6 +405,20 @@ sys_open(void)
   end_op();
 
   return fd;
+}
+
+uint64
+sys_open(void)
+{
+  char path[MAXPATH + 1];
+  int omode;
+  int n;
+
+  argint(1, &omode);
+  if((n = argstr(0, path, MAXPATH)) < 0)
+    return -1;
+
+  return open(path, omode);
 }
 
 uint64
@@ -502,4 +553,69 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64 
+sys_symlink(void) 
+{
+  char target[MAXPATH], filename[MAXPATH];
+  int target_size = -1, filename_size = -1;
+  struct inode *ip;
+
+  begin_op();
+
+  if ((target_size = argstr(0, target, MAXPATH)) < 0 || target_size > MAXPATH) {
+    end_op();
+    return -1;
+  }
+  if ((filename_size = argstr(1, filename, MAXPATH)) < 0 || filename_size > MAXPATH) {
+    end_op();
+    return -1;
+  }
+
+  if ((ip = create(filename, T_SYMLINK, 0, 0)) == 0) {
+    end_op();
+    return -1;
+  }
+
+  writei(ip, 0, (uint64)target, 0, target_size);
+
+  iunlockput(ip);
+
+  end_op();
+
+  return 0;
+}
+
+uint64 
+sys_readlink(void) 
+{
+  char filename[MAXPATH];
+  uint64 buf;
+  struct inode *ip;
+
+  if (argstr(0, filename, MAXPATH) < 0)
+    return -1;
+  argaddr(1, &buf);
+
+  begin_op();
+
+  if ((ip = namei(filename)) == 0) {
+    end_op();
+    return -1;
+  }
+
+
+  int len;
+  char path[MAXPATH + 1];
+
+  len = readi(ip, 0, (uint64)path, 0, MAXPATH);
+
+  path[len] = '\0';
+
+  copyout(myproc()->pagetable, buf, path, len + 1);
+
+  end_op();
+
+  return len;
 }
