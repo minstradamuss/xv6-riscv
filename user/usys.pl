@@ -36,7 +36,5 @@ entry("getpid");
 entry("sbrk");
 entry("sleep");
 entry("uptime");
-
-
-entry("wasaccess");
-entry("proctable");
+entry("vmprint");
+entry("checkaccess");
