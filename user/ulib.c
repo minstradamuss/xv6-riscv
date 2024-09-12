@@ -95,13 +95,14 @@ stat(const char *n, struct stat *st)
   return r;
 }
 
-int lstat(const char *n, struct stat *st)
+int
+lstat(const char *n, struct stat *st)
 {
   int fd;
   int r;
 
   fd = open(n, O_RDONLY | O_NOFOLLOW);
-  if (fd < 0)
+  if(fd < 0)
     return -1;
   r = fstat(fd, st);
   close(fd);
@@ -153,7 +154,8 @@ memcmp(const void *s1, const void *s2, uint n)
   return 0;
 }
 
-void *memcpy(void *dst, const void *src, uint n)
+void *
+memcpy(void *dst, const void *src, uint n)
 {
   return memmove(dst, src, n);
 }

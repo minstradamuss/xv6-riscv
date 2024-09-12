@@ -5,16 +5,17 @@
 int
 main(int argc, char *argv[])
 {
-  if (argc == 4 && strcmp(argv[1], "-s") == 0) {
-    if (symlink(argv[2], argv[3]) < 0)
-      fprintf(2, "Wrong path: %s, or target: %s\n", argv[2], argv[3]);
-    exit(0);
-  }
-  if(argc != 3){
-    fprintf(2, "Usage: ln old new\nUsage: ln -s path target\n");
+  if(argc != 4){
+    fprintf(2, "Usage: ln [-h/-s] old new\n");
     exit(1);
   }
-  if(link(argv[1], argv[2]) < 0)
-    fprintf(2, "link %s %s: failed\n", argv[1], argv[2]);
+  if (!strcmp(argv[1], "-h")) {
+    if(link(argv[2], argv[3]) < 0)
+      fprintf(2, "link %s %s: failed\n", argv[2], argv[3]);
+  }
+  else if (!strcmp(argv[1], "-s")) {
+    if (symlink(argv[2], argv[3]) < 0) 
+      fprintf(2, "symlink %s %s: failed\n", argv[2], argv[3]);
+  }
   exit(0);
 }
